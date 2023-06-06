@@ -7,13 +7,15 @@ import Button from "@/app/components/Button";
 import AuthSocialButton from "./AuthSocialButton";
 import { BsGithub, BsGoogle } from "react-icons/bs";
 import axios from "axios";
-
+import { toast } from "react-hot-toast";
+import { signIn } from "next-auth/react";
 
 type Variant = "LOGIN" | "REGISTER";
 
 const AuthForm = () => {
   const [variant, setVariant] = useState<Variant>("LOGIN");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
   const toggleVariant = useCallback(() => {
     if (variant === "LOGIN") {
       setVariant("REGISTER");
@@ -38,16 +40,44 @@ const AuthForm = () => {
     setIsLoading(true);
     if (variant === "REGISTER") {
       // Axios Register
-      axios.post('/api/register', data)
+      axios
+        .post("/api/register", data)
+        .catch(() => {
+          toast.error("Something went wrong. Please try again");
+        })
+        .finally(() => setIsLoading(false));
     }
     if (variant === "LOGIN") {
       // Next-auth sign in
+      signIn("credentials", {
+        ...data,
+        redirect: false,
+      })
+        .then((callback) => {
+          if (callback?.error) {
+            toast.error("Invalid credentials");
+          }
+          if (callback?.ok && !callback?.error) {
+            toast.success("Successfully logged in");
+          }
+        })
+        .finally(() => setIsLoading(false));
     }
   };
 
-  const socialAction = (action: String) => {
+  const socialAction = (action: string) => {
     setIsLoading(true);
     // NextAuth social sign in
+    signIn(action, { redirect: false })
+      .then((callback) => {
+        if (callback?.error) {
+          toast.error("Invalid credentials");
+        }
+        if (callback?.ok && !callback?.error) {
+          toast.success("Successfully logged in");
+        }
+      })
+      .finally(() => setIsLoading(false));
   };
 
   return (
@@ -55,12 +85,12 @@ const AuthForm = () => {
       <div className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
         <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
           {variant === "REGISTER" && (
-            <Input 
-            id="name" 
-            label="Name" 
-            register={register} 
-            errors={errors}
-            disabled={isLoading}
+            <Input
+              id="name"
+              label="Name"
+              register={register}
+              errors={errors}
+              disabled={isLoading}
             />
           )}
 
